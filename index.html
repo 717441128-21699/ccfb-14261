@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>显微标本照片反卷积复原</title>
+  <link rel="stylesheet" href="/src/app/ui.css" />
+</head>
+<body>
+  <header>
+    <h1>显微标本照片反卷积复原</h1>
+    <nav>
+      <button class="tab active" data-tab="deconv">标本复原</button>
+      <button class="tab" data-tab="calibrate">PSF 校准</button>
+      <button class="tab" data-tab="library">PSF 库</button>
+      <button class="tab" data-tab="bench">验证与基准</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- 标本复原 -->
+    <section id="tab-deconv" class="panel active">
+      <div class="row">
+        <fieldset>
+          <legend>1. 选择设备与倍率(自动套用 PSF)</legend>
+          <label>显微镜 <select id="sel-microscope"></select></label>
+          <label>倍率 <select id="sel-magnification"></select></label>
+          <span id="psf-match-status" class="hint"></span>
+        </fieldset>
+        <fieldset>
+          <legend>2. 复原参数</legend>
+          <label>迭代次数 <input id="inp-iterations" type="number" value="30" min="1" max="200" /></label>
+          <label>TV 强度 <input id="inp-tv" type="number" value="0.002" min="0" max="0.05" step="0.001" /></label>
+          <label><input id="inp-accel" type="checkbox" checked /> Biggs-Andrews 加速</label>
+        </fieldset>
+      </div>
+
+      <div class="row">
+        <fieldset class="grow">
+          <legend>3. 预览(小图快速试算,每轮迭代可回看)</legend>
+          <div class="row">
+            <button id="btn-preview">对队列第一张图运行预览</button>
+            <span id="preview-status" class="hint"></span>
+          </div>
+          <div class="row">
+            <canvas id="preview-canvas" class="preview"></canvas>
+            <div>
+              <div>迭代回看:<input id="iteration-slider" type="range" min="0" value="0" disabled /></div>
+              <div id="iteration-label" class="hint">尚未运行</div>
+              <div class="row">
+                <label><input type="checkbox" id="chk-compare" /> 对比原图</label>
+                <button id="btn-use-iterations" disabled>把预览迭代数设为导出参数</button>
+              </div>
+            </div>
+          </div>
+          <div id="filmstrip" class="filmstrip"></div>
+        </fieldset>
+      </div>
+
+      <div class="row">
+        <fieldset class="grow">
+          <legend>4. 批量队列(全分辨率导出)</legend>
+          <div class="row">
+            <input id="file-input" type="file" accept="image/*" multiple />
+            <button id="btn-run-queue">开始批量处理</button>
+            <button id="btn-clear-queue">清空已完成</button>
+          </div>
+          <table id="queue-table">
+            <thead><tr><th>文件</th><th>显微镜/倍率</th><th>状态</th><th>进度</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </fieldset>
+      </div>
+    </section>
+
+    <!-- PSF 校准 -->
+    <section id="tab-calibrate" class="panel">
+      <fieldset>
+        <legend>1. 拍摄微孔光源照片并导入</legend>
+        <input id="cal-file" type="file" accept="image/*" />
+        <label>PSF 窗口尺寸 <input id="cal-size" type="number" value="65" min="15" max="257" step="2" /></label>
+        <button id="btn-extract-psf">提取 PSF</button>
+        <span id="cal-status" class="hint"></span>
+      </fieldset>
+      <div class="row">
+        <canvas id="cal-source-canvas" class="preview"></canvas>
+        <canvas id="cal-psf-canvas" class="preview small"></canvas>
+      </div>
+      <fieldset>
+        <legend>2. 建档保存</legend>
+        <label>显微镜 <input id="cal-microscope" type="text" placeholder="如:Olympus SZX16 #2" /></label>
+        <label>倍率 <input id="cal-magnification" type="text" placeholder="如:10x" /></label>
+        <label>备注 <input id="cal-notes" type="text" placeholder="可选" /></label>
+        <button id="btn-save-psf" disabled>保存到 PSF 库</button>
+      </fieldset>
+    </section>
+
+    <!-- PSF 库 -->
+    <section id="tab-library" class="panel">
+      <table id="psf-table">
+        <thead><tr><th>显微镜</th><th>倍率</th><th>尺寸</th><th>建档时间</th><th>备注</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- 验证与基准 -->
+    <section id="tab-bench" class="panel">
+      <fieldset>
+        <legend>GPU 正确性自检(GPU 与 CPU 参考实现对比)</legend>
+        <button id="btn-selftest">运行自检</button>
+        <span id="selftest-result" class="hint"></span>
+      </fieldset>
+      <fieldset>
+        <legend>性能基准(2000 万像素,30 次迭代,目标 &lt; 20 秒)</legend>
+        <label>FFT 画布 <select id="bench-canvas"><option value="4096">4096</option><option value="2048">2048</option></select></label>
+        <button id="btn-benchmark">运行基准</button>
+        <span id="bench-result" class="hint"></span>
+      </fieldset>
+      <fieldset>
+        <legend>离线验证(已知真值,PSNR 提升 ≥ 6 dB)</legend>
+        <p class="hint">在命令行运行 <code>npm test</code>:4 种 PSF × 3 种噪声水平,共 12 组场景,全部断言 PSNR 提升 ≥ 6 dB。</p>
+      </fieldset>
+    </section>
+  </main>
+
+  <script type="module" src="/src/app/main.ts"></script>
+</body>
+</html>
